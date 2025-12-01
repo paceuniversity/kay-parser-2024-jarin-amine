@@ -50,8 +50,6 @@ public class TokenStream {
 		// Then check for a comment, and bypass it
 		// but remember that / may also be a division operator.
 		while (nextChar == '/') {
-			// The use of while (instead of if) prevents the 2nd line to be printed when
-			// there are two comment lines in a row.
 			char lookAhead = readChar(); // Read the character after the first '/'
 			if (lookAhead == '/') { // If / is followed by another /
 				// skip rest of line - it's a comment.
@@ -97,9 +95,9 @@ public class TokenStream {
 					nextChar = readChar();
 					return t;
 				} else {
-					// Single '|' is not a valid KAY operator.
+					// Single '|' is not valid; return the single '|' as "Other"
 					t.setType("Other");
-					return t;
+					return t; 
 				}
 			case '&':
 				// Look for && (Logical AND)
@@ -109,13 +107,13 @@ public class TokenStream {
 					nextChar = readChar();
 					return t;
 				} else {
-					// Single '&' is not a valid KAY operator.
+					// Single '&' is not valid; return the single '&' as "Other"
 					t.setType("Other");
 					return t;
 				}
 			default: // all other operators: +, -, *, %
 				nextChar = readChar();
-				return t;
+				return t; // Ensures a return for single-character operators
 			}
 		}
 
