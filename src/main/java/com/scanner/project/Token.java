@@ -10,7 +10,7 @@ public class Token {
 
 	/**
 	 * @param value
-	 *            . Set the value of a Token.
+	 * . Set the value of a Token.
 	 */
 	public void setValue(String value) {
 		this.value = value;
@@ -25,7 +25,7 @@ public class Token {
 
 	/**
 	 * @param type
-	 *            . Set the type of a Token.
+	 * . Set the type of a Token.
 	 */
 	public void setType(String type) {
 		this.type = type;
