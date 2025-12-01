@@ -95,7 +95,7 @@ public class TokenStream {
 					nextChar = readChar();
 					return t;
 				} else {
-					// Single '|' is not valid; return the single '|' as "Other"
+					// Single '|' is not valid in KAY; return the single '|' as "Other"
 					t.setType("Other");
 					return t; 
 				}
@@ -107,7 +107,7 @@ public class TokenStream {
 					nextChar = readChar();
 					return t;
 				} else {
-					// Single '&' is not valid; return the single '&' as "Other"
+					// Single '&' is not valid in KAY; return the single '&' as "Other"
 					t.setType("Other");
 					return t;
 				}
@@ -157,20 +157,22 @@ public class TokenStream {
 			}
 		}
 
+		// Final check for unknown/other tokens
 		t.setType("Other");
-
+		
 		if (isEof) {
 			return t;
 		}
 
 		// Makes sure that the whole unknown token (Type: Other) is printed.
+		// If the parser reached this point, it means the current character is unknown
 		while (!isEndOfToken(nextChar)) {
 			t.setValue(t.getValue() + nextChar);
 			nextChar = readChar();
 		}
 
-		// Finally check for whitespaces and bypass them
-		skipWhiteSpace();
+		// Skip whitespace one final time before returning the unknown token
+		skipWhiteSpace(); 
 
 		return t;
 	}
