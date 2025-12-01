@@ -97,7 +97,7 @@ public class TokenStream {
 				} else {
 					// Single '|' is not valid in KAY; return the single '|' as "Other"
 					t.setType("Other");
-					return t; 
+					return t;
 				}
 			case '&':
 				// Look for && (Logical AND)
@@ -125,6 +125,10 @@ public class TokenStream {
 			return t;
 		}
 
+		// ------------------------------------------------------------------
+		// CRITICAL FIX FOR NPE: Guaranteed returns after consuming characters
+		// ------------------------------------------------------------------
+
 		// Then check for an identifier, keyword, or literal (True or False).
 		if (isLetter(nextChar)) {
 			// Set to an identifier
@@ -139,9 +143,8 @@ public class TokenStream {
 			} else if (t.getValue().equals("True") || t.getValue().equals("False")) {
 				t.setType("Literal"); // Boolean Literals
 			}
-			if (isEndOfToken(nextChar)) { // If token is valid, returns.
-				return t;
-			}
+			// We skip the isEndOfToken check and just return the token we found.
+			return t;
 		}
 
 		if (isDigit(nextChar)) { // check for integer literals
@@ -152,11 +155,11 @@ public class TokenStream {
 			}
 			// An Integer-Literal is to be only followed by a space,
 			// an operator, or a separator.
-			if (isEndOfToken(nextChar)) {// If token is valid, returns.
-				return t;
-			}
+			// We skip the isEndOfToken check and just return the token we found.
+			return t;
 		}
-
+		// ------------------------------------------------------------------
+		
 		// Final check for unknown/other tokens
 		t.setType("Other");
 		
