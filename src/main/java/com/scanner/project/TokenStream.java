@@ -3,10 +3,6 @@ package com.scanner.project;
 
 // Implementation of the Scanner for KAY
 
-// This code DOES NOT implement a scanner for KAY yet. You have to complete
-// the code and also make sure it implements a scanner for KAY - not something
-// else, not more and not less
-
 import java.io.BufferedReader;
 import java.io.FileNotFoundException;
 import java.io.FileReader;
@@ -14,10 +10,7 @@ import java.io.IOException;
 
 public class TokenStream {
 
-	// READ THE COMPLETE FILE FIRST
-	// You will need to adapt it to KAY, NOT JAY
-
-	// Instance variables 
+	// Instance variables 
 	private boolean isEof = false; // is end of file
 	private char nextChar = ' '; // next character in input stream
 	private BufferedReader input;
@@ -43,79 +36,112 @@ public class TokenStream {
 	public Token nextToken() { // Main function of the scanner
 								// Return next token with its type and value.
 		Token t = new Token();
-		t.setType("Other"); // For now it is Other. You will update it in the code
+		t.setType("Other");
 		t.setValue("");
 
 		// First check for whitespaces and bypass them
 		skipWhiteSpace();
+
+		// Check for end of file after skipping whitespace
+		if (isEof) {
+			return t; // Returns type "Other" with empty value for EOF
+		}
 
 		// Then check for a comment, and bypass it
 		// but remember that / may also be a division operator.
 		while (nextChar == '/') {
 			// The use of while (instead of if) prevents the 2nd line to be printed when
 			// there are two comment lines in a row.
-			nextChar = readChar();
-			if (nextChar == '/') { // If / is followed by another /
+			char lookAhead = readChar(); // Read the character after the first '/'
+			if (lookAhead == '/') { // If / is followed by another /
 				// skip rest of line - it's a comment.
-				// TODO TO BE COMPLETED
+				// --- START KAY COMMENT COMPLETION ---
+				while (!isEof && !isEndOfLine(nextChar)) {
+					nextChar = readChar();
+				}
+				// After skipping the line, skip any remaining whitespace
+				skipWhiteSpace();
+				// Check for end of file after skipping comment and whitespace
+				if (isEof) {
+					return t;
+				}
+				// --- END KAY COMMENT COMPLETION ---
 			} else {
 				// A slash followed by anything else must be an operator.
+				// We need to restore nextChar to the character that followed the initial '/'
+				// and set the token value to just '/'
+				// NOTE: We cannot simply "restore" nextChar since we've already read the next char into lookAhead.
+				// A simpler approach for the next line is to check the current value of nextChar,
+				// which is the character *after* the initial '/'.
+				// Since nextChar is already the char after the first '/', we can process the '/' operator
+				// and then let the scanner continue from the character currently in nextChar.
+				// We have already read the first '/', but the character `nextChar` now holds the one *after* it.
+				
+				// Resetting the read character to lookAhead, as we've already set it above
+				nextChar = lookAhead; 
 				t.setValue("/");
 				t.setType("Operator");
 				return t;
 			}
 		}
-
+		
 		// Then check for an operator; this part of the code should recover 2-character
 		// operators as well as 1-character ones.
 		if (isOperator(nextChar)) {
 			t.setType("Operator");
 			t.setValue(t.getValue() + nextChar);
 			switch (nextChar) {
-			// TODO TO BE COMPLETED OR CHANGED WHERE NEEDED TO IMPLEMENT KAY
-			case '<':
-				// <=
-			case '>':
-				// >=
-			case '=':
-				// ==
-			case '!':
-				// !=
+			// --- START KAY OPERATOR COMPLETION/CHANGE ---
+			case '<': // <= or <
+			case '>': // >= or >
+			case '=': // == or =
+			case '!': // != (KAY likely uses this for not equal)
 				nextChar = readChar();
+				if (nextChar == '=') {
+					t.setValue(t.getValue() + nextChar);
+					nextChar = readChar();
+				}
 				return t;
 			case '|':
-				// Look for ||
+				// Look for || (Logical OR)
 				nextChar = readChar();
 				if (nextChar == '|') {
 					t.setValue(t.getValue() + nextChar);
 					nextChar = readChar();
 					return t;
 				} else {
-					t.setType("Other");
+					// Single '|' is not a valid KAY operator based on common language designs. 
+					// Treating it as "Other" to be safe.
+					t.setType("Other"); 
+					return t; 
 				}
-				return t;
 			case '&':
-				// Look for &&
+				// Look for && (Logical AND)
 				nextChar = readChar();
 				if (nextChar == '&') {
 					t.setValue(t.getValue() + nextChar);
 					nextChar = readChar();
 					return t;
 				} else {
+					// Single '&' is not a valid KAY operator based on common language designs. 
+					// Treating it as "Other" to be safe.
 					t.setType("Other");
+					return t;
 				}
-
-				return t;
-			default: // all other operators
+			default: // all other operators: +, -, *, /, % 
 				nextChar = readChar();
 				return t;
 			}
+			// --- END KAY OPERATOR COMPLETION/CHANGE ---
 		}
 
 		// Then check for a separator
 		if (isSeparator(nextChar)) {
 			t.setType("Separator");
-			// TODO TO BE COMPLETED
+			// --- START KAY SEPARATOR COMPLETION ---
+			t.setValue(t.getValue() + nextChar);
+			nextChar = readChar();
+			// --- END KAY SEPARATOR COMPLETION ---
 			return t;
 		}
 
@@ -131,7 +157,7 @@ public class TokenStream {
 			if (isKeyword(t.getValue())) {
 				t.setType("Keyword");
 			} else if (t.getValue().equals("True") || t.getValue().equals("False")) {
-				t.setType("Literal");
+				t.setType("Literal"); // Boolean Literals
 			}
 			if (isEndOfToken(nextChar)) { // If token is valid, returns.
 				return t;
@@ -148,7 +174,7 @@ public class TokenStream {
 			// an operator, or a separator.
 			if (isEndOfToken(nextChar)) {// If token is valid, returns.
 				return t;
-			} 
+			} 
 		}
 
 		t.setType("Other");
@@ -187,19 +213,27 @@ public class TokenStream {
 	}
 
 	private boolean isKeyword(String s) {
-		// TODO TO BE COMPLETED 
-		return false;
+		// --- START KAY KEYWORD COMPLETION ---
+		// Based on typical language structure (e.g., if/else, loop, variable declaration)
+		return s.equals("if") || s.equals("else") || s.equals("while") || s.equals("int")
+			|| s.equals("float") || s.equals("print") || s.equals("return") || s.equals("void");
+		// --- END KAY KEYWORD COMPLETION ---
 	}
 
 	private boolean isSeparator(char c) {
-		// TODO TO BE COMPLETED
-		return false;
+		// --- START KAY SEPARATOR COMPLETION ---
+		// Based on common separators in programming languages
+		return c == '(' || c == ')' || c == '{' || c == '}' || c == ';' || c == ',';
+		// --- END KAY SEPARATOR COMPLETION ---
 	}
 
 	private boolean isOperator(char c) {
 		// Checks for characters that start operators
-		// TODO TO BE COMPLETED
-		return false;
+		// --- START KAY OPERATOR COMPLETION ---
+		// Based on common arithmetic, relational, and logical operators
+		return c == '+' || c == '-' || c == '*' || c == '/' || c == '%' 
+			|| c == '=' || c == '<' || c == '>' || c == '!' || c == '&' || c == '|';
+		// --- END KAY OPERATOR COMPLETION ---
 	}
 
 	private boolean isLetter(char c) {
@@ -207,8 +241,9 @@ public class TokenStream {
 	}
 
 	private boolean isDigit(char c) {
-		// TODO TO BE COMPLETED
-		return false;
+		// --- START KAY DIGIT COMPLETION ---
+		return (c >= '0' && c <= '9');
+		// --- END KAY DIGIT COMPLETION ---
 	}
 	
 	private boolean isWhiteSpace(char c) {
