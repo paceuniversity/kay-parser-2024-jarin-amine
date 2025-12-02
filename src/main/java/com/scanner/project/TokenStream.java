@@ -33,7 +33,7 @@ public class TokenStream {
 
 	public Token nextToken() { // Main function of the scanner
 		
-		// Use an infinite loop (while(true)) to handle comments and continuous whitespace robustly
+		// Use an infinite loop (while(true)) for robustness against comments/whitespace
 		while (true) { 
 			
 			Token t = new Token();
@@ -56,7 +56,7 @@ public class TokenStream {
 					while (!isEof && !isEndOfLine(nextChar)) {
 						nextChar = readChar();
 					}
-					// Use 'continue' to restart the while(true) loop, skipping whitespace again
+					// Restart loop to find the next token after the comment
 					continue; 
 				} else {
 					// A slash followed by anything else must be an operator.
@@ -67,20 +67,6 @@ public class TokenStream {
 				}
 			}
 
-			// --- CRITICAL FIX FOR ASSIGNMENT OPERATOR (:=) ---
-			// Check for Assignment Operator := (If ':' followed by '=')
-			if (nextChar == ':') {
-				t.setType("Operator"); 
-				t.setValue(":");
-				nextChar = readChar();
-				if (nextChar == '=') {
-					t.setValue(t.getValue() + nextChar); // Value becomes ":="
-					nextChar = readChar();
-				}
-				return t; // Return either ':' or ':='
-			}
-			// --------------------------------------------------
-
 			// Then check for an operator;
 			if (isOperator(nextChar)) {
 				t.setType("Operator");
@@ -88,7 +74,7 @@ public class TokenStream {
 				switch (nextChar) {
 				case '<': 
 				case '>': 
-				case '=': // Now only checks for '==' and single '='
+				case '=': 
 				case '!': 
 					nextChar = readChar();
 					if (nextChar == '=') {
@@ -122,7 +108,7 @@ public class TokenStream {
 				}
 			}
 
-			// Then check for a separator
+			// Then check for a separator (now includes ':')
 			if (isSeparator(nextChar)) {
 				t.setType("Separator");
 				t.setValue(t.getValue() + nextChar);
@@ -197,12 +183,12 @@ public class TokenStream {
 	}
 
 	private boolean isSeparator(char c) {
-		// Separators: parentheses, braces, semicolon, comma
-		return c == '(' || c == ')' || c == '{' || c == '}' || c == ';' || c == ',';
+		// Separators: parentheses, braces, semicolon, comma, and now COLON (:)
+		return c == '(' || c == ')' || c == '{' || c == '}' || c == ';' || c == ',' || c == ':';
 	}
 
 	private boolean isOperator(char c) {
-		// Checks for characters that start operators (Note: ':' is handled explicitly)
+		// Checks for characters that start operators (Note: ':' is handled as a separator)
 		return c == '+' || c == '-' || c == '*' || c == '/' || c == '%'
 			|| c == '=' || c == '<' || c == '>' || c == '!' || c == '&' || c == '|';
 	}
@@ -224,7 +210,8 @@ public class TokenStream {
 	}
 
 	private boolean isEndOfToken(char c) { // Is the value a seperate token?
-		return (isWhiteSpace(nextChar) || isOperator(nextChar) || isSeparator(nextChar) || isEof || nextChar == ':');
+		// Includes checking if the next character starts a new token type
+		return (isWhiteSpace(nextChar) || isOperator(nextChar) || isSeparator(nextChar) || isEof);
 	}
 
 	private void skipWhiteSpace() {
