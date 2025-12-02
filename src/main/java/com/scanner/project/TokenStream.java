@@ -68,7 +68,7 @@ public class TokenStream {
 			}
 
 			// --- CRITICAL FIX: COLON AS SEPARATOR ---
-			// The colon is a separator, handled here to ensure assignment (:=) works.
+			// The colon is a separator, handled here to ensure assignment (:=) works with the parser.
 			if (nextChar == ':') {
 				t.setType("Separator"); 
 				t.setValue(String.valueOf(nextChar));
@@ -187,19 +187,19 @@ public class TokenStream {
 	}
 
 	private boolean isKeyword(String s) {
-		// FINAL FIX: Added 'integer' and 'bool' based on test file analysis
+		// FINAL KEYWORD LIST: Includes all reserved words identified in the tests.
 		return s.equals("if") || s.equals("else") || s.equals("while") || s.equals("int")
 			|| s.equals("float") || s.equals("print") || s.equals("return") || s.equals("void")
-			|| s.equals("integer") || s.equals("bool");
+			|| s.equals("integer") || s.equals("bool") || s.equals("main");
 	}
 
 	private boolean isSeparator(char c) {
-		// Separators: parentheses, braces, semicolon, comma, and now COLON (:)
+		// Separators: parentheses, braces, semicolon, comma, and COLON (:)
 		return c == '(' || c == ')' || c == '{' || c == '}' || c == ';' || c == ',' || c == ':';
 	}
 
 	private boolean isOperator(char c) {
-		// Checks for characters that start operators (Note: ':' is handled as a separator outside this method)
+		// Checks for characters that start operators
 		return c == '+' || c == '-' || c == '*' || c == '/' || c == '%'
 			|| c == '=' || c == '<' || c == '>' || c == '!' || c == '&' || c == '|';
 	}
