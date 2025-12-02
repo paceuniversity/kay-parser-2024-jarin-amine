@@ -1,7 +1,7 @@
 package com.scanner.project;
-// TokenStream.java
 
-// Implementation of the Scanner for KAY
+// TokenStream.java
+// Scanner for KAY language
 
 import java.io.BufferedReader;
 import java.io.FileNotFoundException;
@@ -10,231 +10,230 @@ import java.io.IOException;
 
 public class TokenStream {
 
-	// Instance variables
-	private boolean isEof = false; // is end of file
-	private char nextChar = ' '; // next character in input stream
-	private BufferedReader input;
+    // Instance variables
+    private boolean isEof = false;
+    private char nextChar = ' ';
+    private BufferedReader input;
 
-	// This function was added to make the demo file work
-	public boolean isEoFile() {
-		return isEof;
-	}
+    // Added for compatibility with demo file
+    public boolean isEoFile() {
+        return isEof;
+    }
 
-	// Constructor
-	// Pass a filename for the program text as a source for the TokenStream.
-	public TokenStream(String fileName) {
-		try {
-			input = new BufferedReader(new FileReader(fileName));
-		} catch (FileNotFoundException e) {
-			System.out.println("File not found: " + fileName);
-			isEof = true;
-		}
-	}
+    // Constructor
+    public TokenStream(String fileName) {
+        try {
+            input = new BufferedReader(new FileReader(fileName));
+        } catch (FileNotFoundException e) {
+            System.out.println("File not found: " + fileName);
+            isEof = true;
+        }
+    }
 
-	public Token nextToken() { // Main function of the scanner
-		
-		// Use an infinite loop (while(true)) for robustness against comments/whitespace
-		while (true) { 
-			
-			Token t = new Token();
-			t.setType("Other");
-			t.setValue("");
+    public Token nextToken() {
 
-			// First check for whitespaces and bypass them
-			skipWhiteSpace();
+        while (true) {
 
-			// Check for end of file after skipping whitespace
-			if (isEof) {
-				return t; // Returns type "Other" with empty value for EOF
-			}
+            Token t = new Token();
+            t.setType("Other");
+            t.setValue("");
 
-			// Then check for a comment, and bypass it
-			if (nextChar == '/') {
-				char lookAhead = readChar(); 
-				if (lookAhead == '/') { 
-					// skip rest of line - it's a comment.
-					while (!isEof && !isEndOfLine(nextChar)) {
-						nextChar = readChar();
-					}
-					// Restart loop to find the next token after the comment
-					continue; 
-				} else {
-					// A slash followed by anything else must be an operator.
-					nextChar = lookAhead;
-					t.setValue("/");
-					t.setType("Operator");
-					return t;
-				}
-			}
+            // Skip whitespace
+            skipWhiteSpace();
 
-			// --- CRITICAL FIX: COLON AS SEPARATOR ---
-			if (nextChar == ':') {
-				t.setType("Separator"); 
-				t.setValue(String.valueOf(nextChar));
-				nextChar = readChar();
-				return t;
-			}
-			// ----------------------------------------
+            // EOF check
+            if (isEof) {
+                t.setType("EOF");
+                t.setValue("EOF");
+                return t;
+            }
 
-			// Then check for an operator;
-			if (isOperator(nextChar)) {
-				t.setType("Operator");
-				t.setValue(t.getValue() + nextChar);
-				switch (nextChar) {
-				case '<': 
-				case '>': 
-				case '=': 
-				case '!': 
-					nextChar = readChar();
-					if (nextChar == '=') {
-						t.setValue(t.getValue() + nextChar);
-						nextChar = readChar();
-					}
-					return t;
-				case '|':
-					nextChar = readChar();
-					if (nextChar == '|') {
-						t.setValue(t.getValue() + nextChar);
-						nextChar = readChar();
-						return t;
-					} else {
-						t.setType("Other");
-						return t;
-					}
-				case '&':
-					nextChar = readChar();
-					if (nextChar == '&') {
-						t.setValue(t.getValue() + nextChar);
-						nextChar = readChar();
-						return t;
-					} else {
-						t.setType("Other");
-						return t;
-					}
-				default: // +, -, *, %
-					nextChar = readChar();
-					return t; 
-				}
-			}
+            // Handle comments: //
+            if (nextChar == '/') {
+                char lookAhead = readChar();
+                if (lookAhead == '/') {
+                    // Skip rest of line
+                    while (!isEof && !isEndOfLine(nextChar)) {
+                        nextChar = readChar();
+                    }
+                    continue; // restart scan after comment
+                } else {
+                    // Single '/' operator
+                    t.setType("Operator");
+                    t.setValue("/");
+                    nextChar = lookAhead;
+                    return t;
+                }
+            }
 
-			// Then check for a separator
-			if (isSeparator(nextChar)) {
-				t.setType("Separator");
-				t.setValue(t.getValue() + nextChar);
-				nextChar = readChar();
-				return t;
-			}
+            // Handle assignment operator :=
+            if (nextChar == ':') {
+                t.setType("Operator");
+                t.setValue(":");
+                nextChar = readChar();
+                if (nextChar == '=') {   // check :=
+                    t.setValue(":=");
+                    nextChar = readChar();
+                }
+                return t;
+            }
 
-			// Then check for an identifier, keyword, or literal (True or False).
-			if (isLetter(nextChar)) {
-				t.setType("Identifier");
-				while ((isLetter(nextChar) || isDigit(nextChar))) {
-					t.setValue(t.getValue() + nextChar);
-					nextChar = readChar();
-				}
-				if (isKeyword(t.getValue())) {
-					t.setType("Keyword");
-				// FINAL SPECULATIVE FIX: Use equalsIgnoreCase for boolean literals
-				} else if (t.getValue().equalsIgnoreCase("True") || t.getValue().equalsIgnoreCase("False")) {
-					t.setType("Literal"); 
-				}
-				return t;
-			}
+            // Operators (+, -, *, <, >, ==, !=, &&, ||, etc.)
+            if (isOperator(nextChar)) {
+                t.setType("Operator");
+                t.setValue(t.getValue() + nextChar);
 
-			if (isDigit(nextChar)) { // check for integer literals
-				t.setType("Literal");
-				while (isDigit(nextChar)) {
-					t.setValue(t.getValue() + nextChar);
-					nextChar = readChar();
-				}
-				return t;
-			}
-			
-			// If none of the above, it's an "Other" token
-			t.setType("Other");
-			
-			if (isEof) {
-				return t;
-			}
+                switch (nextChar) {
 
-			// Makes sure that the whole unknown token (Type: Other) is printed.
-			t.setValue(t.getValue() + nextChar);
-			nextChar = readChar();
-			while (!isEndOfToken(nextChar)) {
-				t.setValue(t.getValue() + nextChar);
-				nextChar = readChar();
-			}
-			
-			return t;
-		}
-	}
+                case '<':
+                case '>':
+                case '=':
+                case '!':
+                    nextChar = readChar();
+                    if (nextChar == '=') {
+                        t.setValue(t.getValue() + nextChar);
+                        nextChar = readChar();
+                    }
+                    return t;
 
-	private char readChar() {
-		int i = 0;
-		if (isEof)
-			return (char) 0;
-		System.out.flush();
-		try {
-			i = input.read();
-		} catch (IOException e) {
-			System.exit(-1);
-		}
-		if (i == -1) {
-			isEof = true;
-			return (char) 0;
-		}
-		return (char) i;
-	}
+                case '&':
+                    nextChar = readChar();
+                    if (nextChar == '&') {
+                        t.setValue(t.getValue() + nextChar);
+                        nextChar = readChar();
+                        return t;
+                    }
+                    t.setType("Other");
+                    return t;
 
-	private boolean isKeyword(String s) {
-		// FINAL KEYWORD LIST: Includes all reserved words identified in the tests.
-		return s.equals("if") || s.equals("else") || s.equals("while") || s.equals("int")
-			|| s.equals("float") || s.equals("print") || s.equals("return") || s.equals("void")
-			|| s.equals("integer") || s.equals("bool") || s.equals("main");
-	}
+                case '|':
+                    nextChar = readChar();
+                    if (nextChar == '|') {
+                        t.setValue(t.getValue() + nextChar);
+                        nextChar = readChar();
+                        return t;
+                    }
+                    t.setType("Other");
+                    return t;
 
-	private boolean isSeparator(char c) {
-		// Separators: parentheses, braces, semicolon, comma, and COLON (:)
-		return c == '(' || c == ')' || c == '{' || c == '}' || c == ';' || c == ',' || c == ':';
-	}
+                default: // + - * %
+                    nextChar = readChar();
+                    return t;
+                }
+            }
 
-	private boolean isOperator(char c) {
-		// Checks for characters that start operators
-		return c == '+' || c == '-' || c == '*' || c == '/' || c == '%'
-			|| c == '=' || c == '<' || c == '>' || c == '!' || c == '&' || c == '|';
-	}
+            // Separators: parentheses, braces, semicolon, comma
+            if (isSeparator(nextChar)) {
+                t.setType("Separator");
+                t.setValue(t.getValue() + nextChar);
+                nextChar = readChar();
+                return t;
+            }
 
-	private boolean isLetter(char c) {
-		return (c >= 'a' && c <= 'z' || c >= 'A' && c <= 'Z');
-	}
+            // Identifiers, keywords, True/False literals
+            if (isLetter(nextChar)) {
+                t.setType("Identifier");
+                while (isLetter(nextChar) || isDigit(nextChar)) {
+                    t.setValue(t.getValue() + nextChar);
+                    nextChar = readChar();
+                }
 
-	private boolean isDigit(char c) {
-		return (c >= '0' && c <= '9');
-	}
+                // Keywords for KAY language
+                if (isKeyword(t.getValue())) {
+                    t.setType("Keyword");
+                }
+                // Boolean literals
+                else if (t.getValue().equals("True") || t.getValue().equals("False")) {
+                    t.setType("Literal");
+                }
 
-	private boolean isWhiteSpace(char c) {
-		return (c == ' ' || c == '\t' || c == '\r' || c == '\n' || c == '\f');
-	}
+                return t;
+            }
 
-	private boolean isEndOfLine(char c) {
-		return (c == '\r' || c == '\n' || c == '\f');
-	}
+            // Integer literals
+            if (isDigit(nextChar)) {
+                t.setType("Literal");
+                while (isDigit(nextChar)) {
+                    t.setValue(t.getValue() + nextChar);
+                    nextChar = readChar();
+                }
+                return t;
+            }
 
-	private boolean isEndOfToken(char c) { // Is the value a seperate token?
-		return (isWhiteSpace(nextChar) || isOperator(nextChar) || isSeparator(nextChar) || isEof);
-	}
+            // Unknown token
+            t.setType("Other");
+            t.setValue(t.getValue() + nextChar);
+            nextChar = readChar();
+            while (!isEndOfToken(nextChar)) {
+                t.setValue(t.getValue() + nextChar);
+                nextChar = readChar();
+            }
+            return t;
+        }
+    }
 
-	private void skipWhiteSpace() {
-		// check for whitespaces, and bypass them
-		while (!isEof && isWhiteSpace(nextChar)) {
-			nextChar = readChar();
-		}
-	}
+    private char readChar() {
+        int i = 0;
+        if (isEof)
+            return (char) 0;
+        try {
+            i = input.read();
+        } catch (IOException e) {
+            System.exit(-1);
+        }
+        if (i == -1) {
+            isEof = true;
+            return (char) 0;
+        }
+        return (char) i;
+    }
 
-	public boolean isEndofFile() {
-		return isEof;
-	}
+    private boolean isKeyword(String s) {
+        // EXACT keywords used by your parser / grammar
+        return s.equals("if") || s.equals("else") || s.equals("while")
+                || s.equals("integer") || s.equals("bool") || s.equals("main");
+    }
+
+    private boolean isSeparator(char c) {
+        return c == '(' || c == ')' || c == '{' || c == '}' || c == ';' || c == ',';
+    }
+
+    private boolean isOperator(char c) {
+        return c == '+' || c == '-' || c == '*' || c == '/' || c == '%'
+                || c == '=' || c == '<' || c == '>' || c == '!' || c == '&' || c == '|';
+    }
+
+    private boolean isLetter(char c) {
+        return (c >= 'a' && c <= 'z') || (c >= 'A' && c <= 'Z');
+    }
+
+    private boolean isDigit(char c) {
+        return (c >= '0' && c <= '9');
+    }
+
+    private boolean isWhiteSpace(char c) {
+        return c == ' ' || c == '\t' || c == '\r' || c == '\n' || c == '\f';
+    }
+
+    private boolean isEndOfLine(char c) {
+        return c == '\r' || c == '\n' || c == '\f';
+    }
+
+    private boolean isEndOfToken(char c) {
+        return isWhiteSpace(c) || isOperator(c) || isSeparator(c) || isEof;
+    }
+
+    private void skipWhiteSpace() {
+        while (!isEof && isWhiteSpace(nextChar)) {
+            nextChar = readChar();
+        }
+    }
+
+    public boolean isEndofFile() {
+        return isEof;
+    }
 }
+
 
 
 
