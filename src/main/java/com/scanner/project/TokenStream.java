@@ -68,7 +68,6 @@ public class TokenStream {
 			}
 
 			// --- CRITICAL FIX: COLON AS SEPARATOR ---
-			// The colon is a separator, handled here to ensure assignment (:=) works with the parser.
 			if (nextChar == ':') {
 				t.setType("Separator"); 
 				t.setValue(String.valueOf(nextChar));
@@ -135,7 +134,8 @@ public class TokenStream {
 				}
 				if (isKeyword(t.getValue())) {
 					t.setType("Keyword");
-				} else if (t.getValue().equals("True") || t.getValue().equals("False")) {
+				// FINAL SPECULATIVE FIX: Use equalsIgnoreCase for boolean literals
+				} else if (t.getValue().equalsIgnoreCase("True") || t.getValue().equalsIgnoreCase("False")) {
 					t.setType("Literal"); 
 				}
 				return t;
@@ -235,8 +235,6 @@ public class TokenStream {
 		return isEof;
 	}
 }
-
-
 
 
 
