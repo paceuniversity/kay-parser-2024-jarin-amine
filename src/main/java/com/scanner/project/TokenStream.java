@@ -33,7 +33,7 @@ public class TokenStream {
 
 	public Token nextToken() { // Main function of the scanner
 		
-		// Use an infinite loop to handle comments and continuous whitespace robustly
+		// Use an infinite loop (while(true)) to handle comments and continuous whitespace robustly
 		while (true) { 
 			
 			Token t = new Token();
@@ -67,6 +67,20 @@ public class TokenStream {
 				}
 			}
 
+			// --- CRITICAL FIX FOR ASSIGNMENT OPERATOR (:=) ---
+			// Check for Assignment Operator := (If ':' followed by '=')
+			if (nextChar == ':') {
+				t.setType("Operator"); 
+				t.setValue(":");
+				nextChar = readChar();
+				if (nextChar == '=') {
+					t.setValue(t.getValue() + nextChar); // Value becomes ":="
+					nextChar = readChar();
+				}
+				return t; // Return either ':' or ':='
+			}
+			// --------------------------------------------------
+
 			// Then check for an operator;
 			if (isOperator(nextChar)) {
 				t.setType("Operator");
@@ -74,7 +88,7 @@ public class TokenStream {
 				switch (nextChar) {
 				case '<': 
 				case '>': 
-				case '=': 
+				case '=': // Now only checks for '==' and single '='
 				case '!': 
 					nextChar = readChar();
 					if (nextChar == '=') {
@@ -148,8 +162,7 @@ public class TokenStream {
 			}
 
 			// Makes sure that the whole unknown token (Type: Other) is printed.
-			// If the parser reached this point, it means the current character is unknown
-			t.setValue(t.getValue() + nextChar); // Start with the unknown character
+			t.setValue(t.getValue() + nextChar);
 			nextChar = readChar();
 			while (!isEndOfToken(nextChar)) {
 				t.setValue(t.getValue() + nextChar);
@@ -189,7 +202,7 @@ public class TokenStream {
 	}
 
 	private boolean isOperator(char c) {
-		// Checks for characters that start operators
+		// Checks for characters that start operators (Note: ':' is handled explicitly)
 		return c == '+' || c == '-' || c == '*' || c == '/' || c == '%'
 			|| c == '=' || c == '<' || c == '>' || c == '!' || c == '&' || c == '|';
 	}
@@ -211,7 +224,7 @@ public class TokenStream {
 	}
 
 	private boolean isEndOfToken(char c) { // Is the value a seperate token?
-		return (isWhiteSpace(nextChar) || isOperator(nextChar) || isSeparator(nextChar) || isEof);
+		return (isWhiteSpace(nextChar) || isOperator(nextChar) || isSeparator(nextChar) || isEof || nextChar == ':');
 	}
 
 	private void skipWhiteSpace() {
@@ -225,3 +238,4 @@ public class TokenStream {
 		return isEof;
 	}
 }
+
