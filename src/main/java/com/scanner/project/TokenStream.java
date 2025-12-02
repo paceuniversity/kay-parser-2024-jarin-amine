@@ -67,6 +67,16 @@ public class TokenStream {
 				}
 			}
 
+			// --- CRITICAL FIX: COLON AS SEPARATOR ---
+			// The colon is a separator, handled here to ensure assignment (:=) works.
+			if (nextChar == ':') {
+				t.setType("Separator"); 
+				t.setValue(String.valueOf(nextChar));
+				nextChar = readChar();
+				return t;
+			}
+			// ----------------------------------------
+
 			// Then check for an operator;
 			if (isOperator(nextChar)) {
 				t.setType("Operator");
@@ -108,7 +118,7 @@ public class TokenStream {
 				}
 			}
 
-			// Then check for a separator (now includes ':')
+			// Then check for a separator
 			if (isSeparator(nextChar)) {
 				t.setType("Separator");
 				t.setValue(t.getValue() + nextChar);
@@ -177,9 +187,10 @@ public class TokenStream {
 	}
 
 	private boolean isKeyword(String s) {
-		// Keywords based on common language structure
+		// FINAL FIX: Added 'integer' and 'bool' based on test file analysis
 		return s.equals("if") || s.equals("else") || s.equals("while") || s.equals("int")
-			|| s.equals("float") || s.equals("print") || s.equals("return") || s.equals("void");
+			|| s.equals("float") || s.equals("print") || s.equals("return") || s.equals("void")
+			|| s.equals("integer") || s.equals("bool");
 	}
 
 	private boolean isSeparator(char c) {
@@ -188,7 +199,7 @@ public class TokenStream {
 	}
 
 	private boolean isOperator(char c) {
-		// Checks for characters that start operators (Note: ':' is handled as a separator)
+		// Checks for characters that start operators (Note: ':' is handled as a separator outside this method)
 		return c == '+' || c == '-' || c == '*' || c == '/' || c == '%'
 			|| c == '=' || c == '<' || c == '>' || c == '!' || c == '&' || c == '|';
 	}
@@ -210,7 +221,6 @@ public class TokenStream {
 	}
 
 	private boolean isEndOfToken(char c) { // Is the value a seperate token?
-		// Includes checking if the next character starts a new token type
 		return (isWhiteSpace(nextChar) || isOperator(nextChar) || isSeparator(nextChar) || isEof);
 	}
 
@@ -225,6 +235,7 @@ public class TokenStream {
 		return isEof;
 	}
 }
+
 
 
 
