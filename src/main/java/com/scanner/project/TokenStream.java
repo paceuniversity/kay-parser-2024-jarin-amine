@@ -32,148 +32,132 @@ public class TokenStream {
 	}
 
 	public Token nextToken() { // Main function of the scanner
-								// Return next token with its type and value.
-		Token t = new Token();
-		t.setType("Other");
-		t.setValue("");
+		
+		// Use an infinite loop to handle comments and continuous whitespace robustly
+		while (true) { 
+			
+			Token t = new Token();
+			t.setType("Other");
+			t.setValue("");
 
-		// First check for whitespaces and bypass them
-		skipWhiteSpace();
+			// First check for whitespaces and bypass them
+			skipWhiteSpace();
 
-		// Check for end of file after skipping whitespace
-		if (isEof) {
-			return t; // Returns type "Other" with empty value for EOF
-		}
+			// Check for end of file after skipping whitespace
+			if (isEof) {
+				return t; // Returns type "Other" with empty value for EOF
+			}
 
-		// Then check for a comment, and bypass it
-		// but remember that / may also be a division operator.
-		while (nextChar == '/') {
-			char lookAhead = readChar(); // Read the character after the first '/'
-			if (lookAhead == '/') { // If / is followed by another /
-				// skip rest of line - it's a comment.
-				while (!isEof && !isEndOfLine(nextChar)) {
-					nextChar = readChar();
-				}
-				// After skipping the line, skip any remaining whitespace
-				skipWhiteSpace();
-				// Check for end of file after skipping comment and whitespace
-				if (isEof) {
+			// Then check for a comment, and bypass it
+			if (nextChar == '/') {
+				char lookAhead = readChar(); 
+				if (lookAhead == '/') { 
+					// skip rest of line - it's a comment.
+					while (!isEof && !isEndOfLine(nextChar)) {
+						nextChar = readChar();
+					}
+					// Use 'continue' to restart the while(true) loop, skipping whitespace again
+					continue; 
+				} else {
+					// A slash followed by anything else must be an operator.
+					nextChar = lookAhead;
+					t.setValue("/");
+					t.setType("Operator");
 					return t;
 				}
-			} else {
-				// A slash followed by anything else must be an operator.
-				nextChar = lookAhead;
-				t.setValue("/");
+			}
+
+			// Then check for an operator;
+			if (isOperator(nextChar)) {
 				t.setType("Operator");
+				t.setValue(t.getValue() + nextChar);
+				switch (nextChar) {
+				case '<': 
+				case '>': 
+				case '=': 
+				case '!': 
+					nextChar = readChar();
+					if (nextChar == '=') {
+						t.setValue(t.getValue() + nextChar);
+						nextChar = readChar();
+					}
+					return t;
+				case '|':
+					nextChar = readChar();
+					if (nextChar == '|') {
+						t.setValue(t.getValue() + nextChar);
+						nextChar = readChar();
+						return t;
+					} else {
+						t.setType("Other");
+						return t;
+					}
+				case '&':
+					nextChar = readChar();
+					if (nextChar == '&') {
+						t.setValue(t.getValue() + nextChar);
+						nextChar = readChar();
+						return t;
+					} else {
+						t.setType("Other");
+						return t;
+					}
+				default: // +, -, *, %
+					nextChar = readChar();
+					return t; 
+				}
+			}
+
+			// Then check for a separator
+			if (isSeparator(nextChar)) {
+				t.setType("Separator");
+				t.setValue(t.getValue() + nextChar);
+				nextChar = readChar();
 				return t;
 			}
-		}
 
-		// Then check for an operator; this part of the code should recover 2-character
-		// operators as well as 1-character ones.
-		if (isOperator(nextChar)) {
-			t.setType("Operator");
-			t.setValue(t.getValue() + nextChar);
-			switch (nextChar) {
-			case '<': // <= or <
-			case '>': // >= or >
-			case '=': // == or =
-			case '!': // != (KAY likely uses this for not equal)
-				nextChar = readChar();
-				if (nextChar == '=') {
+			// Then check for an identifier, keyword, or literal (True or False).
+			if (isLetter(nextChar)) {
+				t.setType("Identifier");
+				while ((isLetter(nextChar) || isDigit(nextChar))) {
+					t.setValue(t.getValue() + nextChar);
+					nextChar = readChar();
+				}
+				if (isKeyword(t.getValue())) {
+					t.setType("Keyword");
+				} else if (t.getValue().equals("True") || t.getValue().equals("False")) {
+					t.setType("Literal"); 
+				}
+				return t;
+			}
+
+			if (isDigit(nextChar)) { // check for integer literals
+				t.setType("Literal");
+				while (isDigit(nextChar)) {
 					t.setValue(t.getValue() + nextChar);
 					nextChar = readChar();
 				}
 				return t;
-			case '|':
-				// Look for || (Logical OR)
-				nextChar = readChar();
-				if (nextChar == '|') {
-					t.setValue(t.getValue() + nextChar);
-					nextChar = readChar();
-					return t;
-				} else {
-					// Single '|' is not valid in KAY; return the single '|' as "Other"
-					t.setType("Other");
-					return t;
-				}
-			case '&':
-				// Look for && (Logical AND)
-				nextChar = readChar();
-				if (nextChar == '&') {
-					t.setValue(t.getValue() + nextChar);
-					nextChar = readChar();
-					return t;
-				} else {
-					// Single '&' is not valid in KAY; return the single '&' as "Other"
-					t.setType("Other");
-					return t;
-				}
-			default: // all other operators: +, -, *, %
-				nextChar = readChar();
-				return t; // Ensures a return for single-character operators
 			}
-		}
+			
+			// If none of the above, it's an "Other" token
+			t.setType("Other");
+			
+			if (isEof) {
+				return t;
+			}
 
-		// Then check for a separator
-		if (isSeparator(nextChar)) {
-			t.setType("Separator");
-			t.setValue(t.getValue() + nextChar);
+			// Makes sure that the whole unknown token (Type: Other) is printed.
+			// If the parser reached this point, it means the current character is unknown
+			t.setValue(t.getValue() + nextChar); // Start with the unknown character
 			nextChar = readChar();
-			return t;
-		}
-
-		// ------------------------------------------------------------------
-		// CRITICAL FIX FOR NPE: Guaranteed returns after consuming characters
-		// ------------------------------------------------------------------
-
-		// Then check for an identifier, keyword, or literal (True or False).
-		if (isLetter(nextChar)) {
-			// Set to an identifier
-			t.setType("Identifier");
-			while ((isLetter(nextChar) || isDigit(nextChar))) {
+			while (!isEndOfToken(nextChar)) {
 				t.setValue(t.getValue() + nextChar);
 				nextChar = readChar();
 			}
-			// Now see if this is a keyword
-			if (isKeyword(t.getValue())) {
-				t.setType("Keyword");
-			} else if (t.getValue().equals("True") || t.getValue().equals("False")) {
-				t.setType("Literal"); // Boolean Literals
-			}
-			// GUARANTEED RETURN PATH
+			
 			return t;
 		}
-
-		if (isDigit(nextChar)) { // check for integer literals
-			t.setType("Literal");
-			while (isDigit(nextChar)) {
-				t.setValue(t.getValue() + nextChar);
-				nextChar = readChar();
-			}
-			// GUARANTEED RETURN PATH
-			return t;
-		}
-		// ------------------------------------------------------------------
-		
-		// Final check for unknown/other tokens
-		t.setType("Other");
-		
-		if (isEof) {
-			return t;
-		}
-
-		// Makes sure that the whole unknown token (Type: Other) is printed.
-		// If the parser reached this point, it means the current character is unknown
-		while (!isEndOfToken(nextChar)) {
-			t.setValue(t.getValue() + nextChar);
-			nextChar = readChar();
-		}
-
-		// Skip whitespace one final time before returning the unknown token
-		skipWhiteSpace(); 
-
-		return t;
 	}
 
 	private char readChar() {
