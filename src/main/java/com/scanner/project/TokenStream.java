@@ -273,4 +273,3 @@ public class TokenStream {
 		return isEof;
 	}
 }
-
